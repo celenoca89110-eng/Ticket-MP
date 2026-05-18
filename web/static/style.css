@@ -1,0 +1,114 @@
+:root {
+  --bg: #0f1115;
+  --panel: #1a1d24;
+  --panel-2: #151820;
+  --text: #ffffff;
+  --muted: #a1a1aa;
+  --accent: #5865F2;
+  --border: rgba(255,255,255,0.06);
+}
+
+.light {
+  --bg: #f2f3f5;
+  --panel: #ffffff;
+  --panel-2: #f7f7f8;
+  --text: #000000;
+  --muted: #4b5563;
+  --border: rgba(0,0,0,0.08);
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: 0.3s ease;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: var(--panel);
+  padding: 20px;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar h2 {
+  color: var(--accent);
+}
+
+.sidebar a {
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  background: var(--panel-2);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.sidebar a:hover {
+  background: var(--accent);
+  transform: translateX(5px);
+}
+
+/* MAIN */
+.main {
+  margin-left: 260px;
+  padding: 25px;
+}
+
+/* CARDS */
+.cards {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: var(--panel);
+  padding: 18px;
+  border-radius: 12px;
+  min-width: 160px;
+  border: 1px solid var(--border);
+}
+
+.ticket {
+  background: var(--panel);
+  padding: 15px;
+  border-radius: 10px;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* INPUT */
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+
+/* BUTTON */
+button {
+  background: var(--accent);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.85;
+}

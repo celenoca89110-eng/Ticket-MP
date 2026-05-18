@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tickets — TicketMP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { background: #0b0d12; color: #fff; min-height: 100vh; }
+header { padding: 24px 32px; border-bottom: 1px solid #1f2430; display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 22px; color: #5865F2; }
+a { color: #5865F2; text-decoration: none; font-weight: 600; }
+a:hover { text-decoration: underline; }
+main { padding: 32px; max-width: 800px; margin: 0 auto; }
+.row {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #1f2430;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+code { background: #1a1f2b; padding: 2px 8px; border-radius: 6px; }
+.empty { opacity: 0.6; text-align: center; padding: 40px; }
+</style>
+</head>
+<body>
+<header>
+    <h1>🎫 Tickets ouverts</h1>
+    <nav>
+        <a href="/dashboard">← Dashboard</a>
+        <span style="opacity:0.4;margin:0 10px">|</span>
+        <a href="/logout">Déconnexion</a>
+    </nav>
+</header>
+<main>
+    {% if user %}
+    <p style="margin-bottom:20px;opacity:0.8">Connecté : <strong>{{ user.username }}</strong></p>
+    {% endif %}
+    {% if tickets %}
+        {% for uid, t in tickets.items() %}
+        <div class="row">
+            <div>
+                Utilisateur <code>{{ uid }}</code><br>
+                Salon <code>{{ t.channel_id }}</code> · serveur <code>{{ t.guild_id }}</code>
+                {% if t.category %}<br>Catégorie : <code>{{ t.category }}</code>{% endif %}
+            </div>
+            <a href="/close/{{ uid }}">Fermer (file d’attente)</a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty">Aucun ticket suivi.</p>
+    {% endif %}
+</main>
+</body>
+</html>

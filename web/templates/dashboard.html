@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard SaaS</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background: #0b0d12;
+    color: white;
+    display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    background: #11141b;
+    padding: 25px;
+    border-right: 1px solid #1f2430;
+}
+
+.sidebar h2 {
+    color: #5865F2;
+    margin-bottom: 10px;
+}
+
+.sidebar p {
+    opacity: 0.7;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: #1a1f2b;
+    transition: 0.2s;
+}
+
+.sidebar a:hover {
+    background: #5865F2;
+    transform: translateX(5px);
+}
+
+/* MAIN */
+.main {
+    margin-left: 280px;
+    padding: 30px;
+    width: 100%;
+}
+
+/* HEADER */
+h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+/* CARDS */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #1f2430;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    border-color: #5865F2;
+}
+
+/* FORM */
+form {
+    background: rgba(255,255,255,0.03);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #1f2430;
+    margin-bottom: 25px;
+}
+
+input, select {
+    width: 100%;
+    margin: 8px 0;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #1a1f2b;
+    color: white;
+    outline: none;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+input:focus, select:focus {
+    border: 1px solid #5865F2;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #5865F2;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #4752c4;
+}
+
+/* TICKETS */
+.ticket {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #1f2430;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket a {
+    color: #ff4d4d;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.ticket:hover {
+    border-color: #5865F2;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>⚙ Ticket SaaS</h2>
+    <p>{{ user.username }}</p>
+
+    <a href="/dashboard">📊 Dashboard</a>
+    <a href="/tickets">🎫 Tickets</a>
+    <a href="/logout">🚪 Logout</a>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+    <h1>📊 Dashboard</h1>
+
+    <!-- STATS -->
+    <div class="cards">
+        <div class="card">🟢 Ouverts<br>{{ stats.active }}</div>
+        <div class="card">📈 Ouverts (bot)<br>{{ stats.opened_bot }}</div>
+        <div class="card">🔴 Fermés (bot)<br>{{ stats.closed_bot }}</div>
+    </div>
+
+    <!-- CREATE -->
+    <h2>🎫 Créer ticket web</h2>
+
+    <p style="opacity:0.8;margin-bottom:10px;font-size:14px">
+        Ton compte : <strong>{{ user.username }}</strong>
+        (<code>{{ user.id }}</code>) — l’identifiant est pris automatiquement, tu ne peux pas usurper un autre utilisateur.
+    </p>
+
+    <form method="POST" action="/open_ticket">
+        <label for="guild_sel">Serveur</label>
+        <select id="guild_sel" name="guild_id" required style="width:100%;margin:8px 0;padding:12px;border-radius:10px;background:#1a1f2b;color:#fff;border:none">
+            {% for gid, g in guild_cfg.items() %}
+            <option value="{{ gid }}">{{ g.name }} ({{ gid }})</option>
+            {% endfor %}
+        </select>
+        <label for="cat_sel">Catégorie</label>
+        <select id="cat_sel" name="category" required style="width:100%;margin:8px 0;padding:12px;border-radius:10px;background:#1a1f2b;color:#fff;border:none">
+        </select>
+        <label for="msg_field">Message</label>
+        <input id="msg_field" name="message" placeholder="Décris ta demande...">
+        <button type="submit">Créer le ticket</button>
+    </form>
+
+    <script>
+    const guildCats = {{ guild_categories_json|safe }};
+    function refreshCats() {
+        const gsel = document.getElementById("guild_sel");
+        const sel = document.getElementById("cat_sel");
+        if (!gsel || !sel) return;
+        const g = gsel.value;
+        sel.innerHTML = "";
+        const list = guildCats[g] || [];
+        list.forEach(function(c) {
+            const o = document.createElement("option");
+            o.value = c.key;
+            o.textContent = c.label + " (" + c.key + ")";
+            sel.appendChild(o);
+        });
+        if (list.length === 0) {
+            const o = document.createElement("option");
+            o.value = "support";
+            o.textContent = "support (défaut)";
+            sel.appendChild(o);
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function() {
+        const gsel = document.getElementById("guild_sel");
+        if (gsel) {
+            gsel.addEventListener("change", refreshCats);
+            refreshCats();
+        }
+    });
+    </script>
+
+    <!-- TICKETS -->
+    <h2>📦 Tickets actifs</h2>
+
+    {% for uid, t in tickets.items() %}
+    <div class="ticket">
+        <div>
+            👤 <b>{{ uid }}</b><br>
+            🧾 {{ t.channel_id }}
+        </div>
+
+        <a href="/close/{{ uid }}">❌ Close</a>
+    </div>
+    {% endfor %}
+
+</div>
+
+</body>
+</html>

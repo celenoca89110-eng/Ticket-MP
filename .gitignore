@@ -1,0 +1,9 @@
+# Secrets et données locales — ne pas committer
+.env
+.env.*
+!.env.example
+ticketmp.db
+transcripts/
+__pycache__/
+*.pyc
+.venv/

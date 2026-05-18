@@ -1,0 +1,52 @@
+{
+    "panel_admin_ids": [],
+    "guilds": {
+        "1495229993624801340": {
+            "name": "CecaBot",
+            "ticket": {
+                "category_id": 1498559533205950524,
+                "log_channel_id": 1495229993624801340,
+                "max_open_per_user": 1,
+                "cooldown_seconds": 30
+            },
+            "admin_roles": [
+                1498559036176728127,
+                1498558066579345421
+            ],
+            "categories": {
+                "support": {
+                    "label": "🛠️ Support",
+                    "emoji": "🛠️"
+                },
+                "autre": {
+                    "label": "❓ Autre",
+                    "emoji": "❓"
+                },
+                "achat": {
+                    "label": "💰 Achat",
+                    "emoji": "💰"
+                }
+            }
+        },
+        "1311035807272013855": {
+            "name": "Serveur de celenoca_ytb",
+            "ticket": {
+                "category_id": 1466806141660041337,
+                "log_channel_id": null,
+                "max_open_per_user": 1,
+                "cooldown_seconds": 30
+            },
+            "admin_roles": [
+                1311035807301238893,
+                1311035807301238891,
+                1311035807301238889
+            ],
+            "categories": {
+                "support": {
+                    "label": "🛠️ Support",
+                    "emoji": "🛠️"
+                }
+            }
+        }
+    }
+}
