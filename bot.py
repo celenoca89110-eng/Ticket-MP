@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import io
 import json
 import os
@@ -225,10 +226,233 @@ class CloseTicketButton(discord.ui.Button):
         )
 
 
+class ProfileButton(discord.ui.Button):
+    def __init__(self, user_id: int, channel_id: int):
+        super().__init__(
+            label="👤 Profil",
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"ticketmp_profile:{channel_id}",
+        )
+        self.ticket_user_id = user_id
+
+    async def callback(self, interaction: discord.Interaction):
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message(
+                "Action réservée aux membres du serveur.", ephemeral=True
+            )
+        cfg = config.get("guilds", {}).get(str(interaction.guild.id))
+        if not can_staff_close(interaction.user, cfg):
+            return await interaction.response.send_message(
+                "🔒 Réservé aux admins / modérateurs.", ephemeral=True
+            )
+        member = interaction.guild.get_member(self.ticket_user_id)
+        if member is None:
+            try:
+                member = await interaction.guild.fetch_member(self.ticket_user_id)
+            except discord.NotFound:
+                return await interaction.response.send_message(
+                    "❌ Ce membre n'est plus sur le serveur.", ephemeral=True
+                )
+            except discord.HTTPException:
+                return await interaction.response.send_message(
+                    "❌ Impossible de récupérer le membre.", ephemeral=True
+                )
+
+        created = discord.utils.format_dt(member.created_at, "R")
+        joined = discord.utils.format_dt(member.joined_at, "R") if member.joined_at else "Inconnu"
+        roles = [r.mention for r in member.roles if r != interaction.guild.default_role]
+        roles_str = ", ".join(roles[:15]) if roles else "Aucun"
+        if len(roles) > 15:
+            roles_str += f" … +{len(roles) - 15}"
+
+        embed = discord.Embed(
+            title=f"👤 Profil de {member.display_name}",
+            color=member.color if member.color != discord.Color.default() else THEME,
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(name="Nom", value=f"{member} (`{member.id}`)", inline=False)
+        embed.add_field(name="Compte créé", value=created, inline=True)
+        embed.add_field(name="A rejoint", value=joined, inline=True)
+        embed.add_field(name="Statut", value=str(member.status).capitalize(), inline=True)
+        embed.add_field(name=f"Rôles ({len(roles)})", value=roles_str, inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class ModerationButton(discord.ui.Button):
+    def __init__(self, user_id: int, channel_id: int):
+        super().__init__(
+            label="🔨 Modération",
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"ticketmp_mod:{channel_id}",
+        )
+        self.ticket_user_id = user_id
+        self.channel_id = channel_id
+
+    async def callback(self, interaction: discord.Interaction):
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message(
+                "Action réservée aux membres du serveur.", ephemeral=True
+            )
+        cfg = config.get("guilds", {}).get(str(interaction.guild.id))
+        if not can_staff_close(interaction.user, cfg):
+            return await interaction.response.send_message(
+                "🔒 Réservé aux admins / modérateurs.", ephemeral=True
+            )
+        view = ModerationActionsView(self.ticket_user_id, interaction.guild.id)
+        embed = discord.Embed(
+            title="🔨 Modération",
+            description=f"Actions sur <@{self.ticket_user_id}> :",
+            color=discord.Color.orange(),
+        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class ModerationActionsView(discord.ui.View):
+    def __init__(self, user_id: int, guild_id: int):
+        super().__init__(timeout=120)
+        self.target_user_id = user_id
+        self.guild_id = guild_id
+
+    async def _get_target(self, interaction: discord.Interaction) -> discord.Member | None:
+        if not interaction.guild:
+            return None
+        member = interaction.guild.get_member(self.target_user_id)
+        if member is None:
+            try:
+                member = await interaction.guild.fetch_member(self.target_user_id)
+            except (discord.NotFound, discord.HTTPException):
+                return None
+        return member
+
+    @discord.ui.button(label="⏱ Timeout", style=discord.ButtonStyle.secondary)
+    async def timeout_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        member = await self._get_target(interaction)
+        if member is None:
+            return await interaction.response.send_message(
+                "❌ Membre introuvable sur le serveur.", ephemeral=True
+            )
+        await interaction.response.send_modal(TimeoutModal(member))
+
+    @discord.ui.button(label="👢 Exclure (Kick)", style=discord.ButtonStyle.danger)
+    async def kick_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        member = await self._get_target(interaction)
+        if member is None:
+            return await interaction.response.send_message(
+                "❌ Membre introuvable sur le serveur.", ephemeral=True
+            )
+        await interaction.response.send_modal(KickModal(member))
+
+    @discord.ui.button(label="🔨 Bannir", style=discord.ButtonStyle.danger)
+    async def ban_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        member = await self._get_target(interaction)
+        if member is None:
+            return await interaction.response.send_message(
+                "❌ Membre introuvable sur le serveur.", ephemeral=True
+            )
+        await interaction.response.send_modal(BanModal(member))
+
+
+class TimeoutModal(discord.ui.Modal, title="⏱ Timeout"):
+    duration = discord.ui.TextInput(
+        label="Durée (en minutes)",
+        placeholder="Ex : 10, 60, 1440 (= 1 jour)",
+        required=True,
+        max_length=10,
+    )
+    reason = discord.ui.TextInput(
+        label="Raison (optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=200,
+    )
+
+    def __init__(self, member: discord.Member):
+        super().__init__()
+        self.target = member
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            minutes = int(self.duration.value)
+            if minutes < 1 or minutes > 40320:
+                return await interaction.response.send_message(
+                    "❌ Durée invalide (1 min – 40320 min / 28 jours).", ephemeral=True
+                )
+        except ValueError:
+            return await interaction.response.send_message(
+                "❌ Durée invalide : entre un nombre de minutes.", ephemeral=True
+            )
+        delta = datetime.timedelta(minutes=minutes)
+        reason_text = self.reason.value or "Aucune raison fournie"
+        try:
+            await self.target.timeout(delta, reason=reason_text)
+            await interaction.response.send_message(
+                f"⏱ {self.target.mention} a été timeout pour **{minutes} min**.\nRaison : {reason_text}",
+                ephemeral=True,
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ Permissions insuffisantes pour timeout ce membre.", ephemeral=True
+            )
+
+
+class KickModal(discord.ui.Modal, title="👢 Exclure (Kick)"):
+    reason = discord.ui.TextInput(
+        label="Raison (optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=200,
+    )
+
+    def __init__(self, member: discord.Member):
+        super().__init__()
+        self.target = member
+
+    async def on_submit(self, interaction: discord.Interaction):
+        reason_text = self.reason.value or "Aucune raison fournie"
+        try:
+            await self.target.kick(reason=reason_text)
+            await interaction.response.send_message(
+                f"👢 {self.target.mention} a été exclu(e).\nRaison : {reason_text}",
+                ephemeral=True,
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ Permissions insuffisantes pour exclure ce membre.", ephemeral=True
+            )
+
+
+class BanModal(discord.ui.Modal, title="🔨 Bannir"):
+    reason = discord.ui.TextInput(
+        label="Raison (optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=200,
+    )
+
+    def __init__(self, member: discord.Member):
+        super().__init__()
+        self.target = member
+
+    async def on_submit(self, interaction: discord.Interaction):
+        reason_text = self.reason.value or "Aucune raison fournie"
+        try:
+            await self.target.ban(reason=reason_text, delete_message_days=0)
+            await interaction.response.send_message(
+                f"🔨 {self.target.mention} a été banni(e).\nRaison : {reason_text}",
+                ephemeral=True,
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ Permissions insuffisantes pour bannir ce membre.", ephemeral=True
+            )
+
+
 class TicketAdminPanel(discord.ui.View):
     def __init__(self, user_id: int, channel_id: int):
         super().__init__(timeout=None)
         self.add_item(CloseTicketButton(user_id, channel_id))
+        self.add_item(ProfileButton(user_id, channel_id))
+        self.add_item(ModerationButton(user_id, channel_id))
 
 
 class TicketBot(commands.Bot):
