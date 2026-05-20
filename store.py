@@ -429,6 +429,50 @@ def close_queue_delete(row_id: int) -> None:
             conn.close()
 
 
+def get_tickets_by_guild(guild_id: str) -> list[tuple[str, int, str]]:
+    """Retourne tous les tickets ouverts pour un serveur : [(user_id, channel_id, category), ...]"""
+    with _lock:
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT user_id, channel_id, category FROM tickets WHERE guild_id = ?",
+                (str(guild_id),),
+            )
+            return [(str(r[0]), int(r[1]), r[2] or "") for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+
+def delete_tickets_by_guild(guild_id: str) -> int:
+    """Supprime tous les tickets d'un serveur ; retourne le nombre supprimé."""
+    with _lock:
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM tickets WHERE guild_id = ?", (str(guild_id),)
+            )
+            conn.commit()
+            return cur.rowcount
+        finally:
+            conn.close()
+
+
+def web_queue_delete_by_guild(guild_id: str) -> None:
+    """Supprime toutes les entrées de la file web pour un serveur."""
+    with _lock:
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM web_queue WHERE guild_id = ?", (str(guild_id),)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
 def recently_closed_add(user_id: str, guild_id: str, category: str) -> None:
     with _lock:
         conn = _connect()

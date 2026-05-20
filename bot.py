@@ -357,6 +357,21 @@ async def on_ready():
     bot.loop.create_task(background_jobs())
 
 
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    gid = str(guild.id)
+    tickets = store.get_tickets_by_guild(gid)
+    closed = 0
+    for uid, channel_id, category in tickets:
+        store.recently_closed_add(uid, gid, category)
+        store.stats_inc_closed()
+        closed += 1
+    if tickets:
+        store.delete_tickets_by_guild(gid)
+    store.web_queue_delete_by_guild(gid)
+    print(f"🚪 Bot retiré de « {guild.name} » ({gid}) — {closed} ticket(s) fermé(s).")
+
+
 async def update_bot_activity():
     """Met à jour l'activité du bot avec le nombre d'admins connectés par serveur."""
     if not bot.guilds:
